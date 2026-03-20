@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BarberController;
+use App\Http\Controllers\PublicTurnsController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -20,5 +21,8 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::resource('barbers', BarberController::class);
 });
+
+Route::get('/reservar', [PublicTurnsController::class, 'create'])->name('turns.create');
+Route::post('/reservar', [PublicTurnsController::class, 'store'])->name('turns.store');
 
 require __DIR__.'/auth.php';
