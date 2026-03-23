@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Turns;
 use App\Models\Barber;
 use Illuminate\Support\Str;
+use App\Mail\ConfirmTurnMail;
+use Illuminate\Support\Facades\Mail;
 
 class PublicTurnsController extends Controller
 {
@@ -33,8 +35,22 @@ class PublicTurnsController extends Controller
             'token' => Str::uuid(),
         ]);
 
-        //Espacio para el envio de email
+        Mail::to($turn->client_email)->send(new ConfirmTurnMail($turn));
 
         return back()->with('sucess', 'Casi listo! Revisa tu email para confirmar el turno');
+    }
+
+    public function confirm($token)
+    {
+        $turn = Turns::where('token', $token)->first();
+
+        if (!$turn) {
+            return "No encontré el turno con el token: " . $token;
+        }
+
+        $turn->status = 'confirmed';
+        $turn->save();
+
+        return view('public.turns.confirmed_success', compact('turn'));
     }
 }
