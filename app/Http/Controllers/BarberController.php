@@ -24,35 +24,30 @@ class BarberController extends Controller
             'name'=>'required|string|max:255',
         ]);
         Barber::create($request->all());
-        return redirect()->route('barbers.index')->with('sucess', 'Peluquero creado con exito');
+        return redirect()->route('admin.barbers.index')->with('sucess', 'Peluquero creado con exito');
+    }
+    public function edit(Barber $barber)
+    {
+        return view('barbers.edit', compact('barber'));
+    }
+    public function update(Request $request, Barber $barber)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $barber->update($request->all());
+
+        return redirect()->route('admin.barbers.index')
+                         ->with('success', 'Barbero actualizado correctamente.');
     }
 
-    public function show(string $id)
+    public function destroy(Barber $barber)
     {
-        //
-    }
+        // Opcional: Podrías verificar si tiene turnos antes de borrar
+        $barber->delete();
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return redirect()->route('admin.barbers.index')
+                         ->with('success', 'Barbero eliminado del staff.');
     }
 }

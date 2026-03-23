@@ -17,7 +17,17 @@
                     </x-nav-link>
                 </div>
             </div>
+            <x-nav-link :href="route('admin.settings.edit')" :active="request()->routeIs('admin.settings.edit')">
+                {{ __('Configuración') }}
+            </x-nav-link>
 
+            <x-nav-link :href="route('admin.turns.index')" :active="request()->routeIs('admin.turns.index')">
+                {{ __('Agenda') }}
+            </x-nav-link>
+
+            <x-nav-link :href="route('admin.barbers.index')" :active="request()->routeIs('admin.barbers.*')">
+                {{ __('Barberos') }}
+            </x-nav-link>
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">

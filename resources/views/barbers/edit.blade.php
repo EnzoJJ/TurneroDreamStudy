@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-black text-2xl text-zinc-800 leading-tight uppercase tracking-tighter">
-            Nuevo Barbero
+            Editar Barbero: {{ $barber->name }}
         </h2>
     </x-slot>
 
@@ -13,32 +13,27 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
-                    Volver al Staff
+                    Cancelar y Volver
                 </a>
             </div>
 
             <div class="bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] rounded-3xl border border-zinc-200 p-8">
-                <form method="POST" action="{{ route('admin.barbers.store') }}" class="space-y-6">
+                <form method="POST" action="{{ route('admin.barbers.update', $barber) }}" class="space-y-6">
                     @csrf
-                    
-                    <div>
+                    @method('PUT') <div>
                         <label class="block text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">Nombre del Profesional</label>
-                        <input type="text" name="name" placeholder="Ej: Enzo" 
+                        <input type="text" name="name" value="{{ $barber->name }}" 
                             class="w-full bg-zinc-50 border-none ring-1 ring-zinc-200 rounded-xl p-4 focus:ring-2 focus:ring-black transition font-bold text-lg" 
                             required autofocus>
                     </div>
 
                     <div class="pt-4">
                         <button type="submit" class="w-full bg-black text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-lg">
-                            Registrar Barbero
+                            Actualizar Datos
                         </button>
                     </div>
                 </form>
             </div>
-            
-            <p class="mt-6 text-center text-[10px] text-zinc-400 uppercase tracking-widest italic">
-                * Al registrarlo, aparecerá automáticamente en el selector de turnos del cliente.
-            </p>
         </div>
     </div>
 </x-app-layout>
