@@ -30,7 +30,7 @@
                 <select name="barber_id" class="w-full border p-2 rounded" required>
                     <option value="">Seleccione uno...</option>
                     @foreach($barbers as $barber)
-                        <option value="{{ $barber->id }}">{{ $barber->name }} ({{ $barber->specialty }})</option>
+                        <option value="{{ $barber->id }}">{{ $barber->name }}</option>
                     @endforeach
                 </select>
             </div>
