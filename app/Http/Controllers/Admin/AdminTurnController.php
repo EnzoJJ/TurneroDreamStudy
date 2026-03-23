@@ -10,11 +10,28 @@ class AdminTurnController extends Controller
 {
     public function index()
     {
+        \Carbon\Carbon::setLocale('es');
+        $today = \Carbon\Carbon::today();
+
         $turns = Turns::with('barber')
-            ->where('status', 'confirmed') 
+            ->whereIn('status', ['pending', 'confirmed'])
             ->orderBy('start_time', 'asc')
             ->get()
-            ->groupBy('barber.name');
+            ->groupBy([
+                'barber.name', 
+                function ($item) use ($today) {
+                    $date = \Carbon\Carbon::parse($item->start_time)->startOfDay();
+                    $diff = $today->diffInDays($date, false);
+
+                    if ($diff == 0) {
+                        return 'Hoy';
+                    } elseif ($diff == 1) {
+                        return 'Mañana';
+                    } else {
+                        return $date->translatedFormat('l d \d\e F');
+                    }
+                }
+            ]);
 
         return view('admin.turns.index', compact('turns'));
     }
