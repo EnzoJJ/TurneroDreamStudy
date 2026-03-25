@@ -94,10 +94,11 @@
 
             // Solo disparamos si ambos están seleccionados
             if (!barberId || !date) return;
-
+            
             timeSelect.disabled = true;
             timeSelect.innerHTML = '<option>Buscando horarios...</option>';
 
+            console.log("Enviando a API -> Barbero:", barberId, "Fecha:", date);
             try {
                 const response = await fetch(`/api/available-times?barber_id=${barberId}&date=${date}`);
                 const times = await response.json();

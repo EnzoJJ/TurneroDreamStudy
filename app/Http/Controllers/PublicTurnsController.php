@@ -96,40 +96,48 @@ class PublicTurnsController extends Controller
     }
     public function getAvailableTimes(Request $request)
     {
-        $isBlocked = BlockedDay::where('date', $request->date)->exists();
+        // Usamos una sola forma de obtener los datos y nos aseguramos que sean strings/integers limpios
+        $date = $request->input('date');
+        $barberId = $request->input('barber_id');
+
+        // 1. Verificamos bloqueos (Local cerrado o Barbero de franco)
+        // Buscamos si existe algun bloqueo que sea: (Misma fecha Y (ID Barbero O ID es NULL))
+        $isBlocked = \App\Models\BlockedDay::where('date', $date)
+            ->where(function ($query) use ($barberId) {
+                $query->whereNull('barber_id')
+                    ->orWhere('barber_id', $barberId);
+            })
+            ->exists();
+
         if ($isBlocked) {
-            return response()->json([]); // Retorna vacío para que no aparezcan horarios
+            return response()->json([]); // Retornamos vacio de inmediato
         }
-        // 1. Obtener configuración (con respaldo si no existe)
+
+        // 2. Configuración de horarios
         $config = Setting::first() ?? (object)[
             'opening_time' => '10:00',
             'closing_time' => '19:30',
             'slot_duration' => 40
         ];
 
-        $barberId = $request->barber_id;
-        $date = $request->date; // Formato YYYY-MM-DD
-
-        // 2. Traer turnos ocupados para ese barbero en ese día
-        // Solo contamos los que NO estén cancelados
+        // 3. Traer turnos ocupados (Filtrando estrictamente por barbero e ID)
         $occupiedTimes = Turns::where('barber_id', $barberId)
             ->whereDate('start_time', $date)
             ->whereIn('status', ['pending', 'confirmed'])
-            ->pluck('start_time')
-            ->map(function($time) {
-            // Convertimos el string a objeto Carbon y luego pedimos el formato H:i
-            return \Carbon\Carbon::parse($time)->format('H:i');
-        })
-        ->toArray();
+            ->get() // Traemos la colección
+            ->map(function($turn) {
+                return \Carbon\Carbon::parse($turn->start_time)->format('H:i');
+            })
+            ->toArray();
 
-        // 3. Generar la lista de turnos posibles
-        $startTime = Carbon::parse($date . ' ' . $config->opening_time);
-        $endTime = Carbon::parse($date . ' ' . $config->closing_time);
-        $duration = $config->slot_duration;
+        // 4. Generar la lista de turnos posibles
+        $startTime = \Carbon\Carbon::parse($date . ' ' . $config->opening_time);
+        $endTime = \Carbon\Carbon::parse($date . ' ' . $config->closing_time);
+        $duration = (int) $config->slot_duration;
 
         $slots = [];
 
-        while ($startTime <= $endTime) {
+        while ($startTime < $endTime) { // Cambié <= por < para evitar turnos que empiecen justo al cierre
             $currentTime = $startTime->format('H:i');
             
             $slots[] = [
@@ -137,7 +145,6 @@ class PublicTurnsController extends Controller
                 'is_available' => !in_array($currentTime, $occupiedTimes)
             ];
 
-            // Sumar la duración para el siguiente turno
             $startTime->addMinutes($duration);
         }
 

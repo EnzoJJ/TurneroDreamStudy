@@ -6,6 +6,7 @@ use App\Models\Turns;
 use Illuminate\Http\Request;
 use App\Models\Setting;
 use App\Models\BlockedDay;
+use App\Models\Barber;
 
 class AdminTurnController extends Controller
 {
@@ -42,17 +43,26 @@ class AdminTurnController extends Controller
         $turn->delete();
         return back()->with('success', 'Turno finalizado correctamente.');
     }
-    public function editSettings() {
+
+    public function editSettings() 
+    {
+        // 1. Obtenemos la configuración (o la creamos si no existe)
         $settings = Setting::firstOrCreate(
             ['id' => 1],
             ['opening_time' => '10:00', 'closing_time' => '19:00', 'slot_duration' => 40]
         );
 
-        $blockedDays = BlockedDay::orderBy('date', 'asc')
+        // 2. IMPORTANTE: Traer todos los barberos para el selector del formulario
+        $barbers = \App\Models\Barber::all(); 
+
+        // 3. Traer los días bloqueados con su relación de barbero
+        $blockedDays = \App\Models\BlockedDay::with('barber')
+            ->orderBy('date', 'asc')
             ->where('date', '>=', now()->toDateString())
             ->get();
-
-        return view('admin.settings.edit', compact('settings', 'blockedDays'));
+        
+        // 4. Pasar TODO a la vista
+        return view('admin.settings.edit', compact('settings', 'blockedDays', 'barbers'));
     }
     public function updateSettings(Request $request)
     {
@@ -68,8 +78,17 @@ class AdminTurnController extends Controller
         return back()->with('success', 'Configuración actualizada correctamente.');
     }
 
-    public function storeBlockedDay(Request $request) {
-        BlockedDay::create($request->validate(['date' => 'required|date|unique:blocked_days', 'reason' => 'nullable|string']));
+    public function storeBlockedDay(Request $request)
+    {
+        $validated = $request->validate([
+            'date' => 'required|date',
+            'barber_id' => 'nullable|exists:barbers,id', // Validamos que el barbero exista si se envía uno
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        // Importante: Si el select llega vacío, Laravel lo guardará como null automáticamente
+        \App\Models\BlockedDay::create($validated);
+
         return back()->with('success', 'Día bloqueado correctamente.');
     }
     public function destroyBlockedDay(BlockedDay $blockedDay) {
