@@ -11,9 +11,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
 Route::get('/api/available-times', [PublicTurnsController::class, 'getAvailableTimes']);
 Route::get('/confirmar-turno/{token}', [PublicTurnsController::class, 'confirm'])->name('turns.confirm');
 Route::post('/admin/blocked-days', [AdminTurnController::class, 'storeBlockedDay'])->name('admin.blocked-days.store');

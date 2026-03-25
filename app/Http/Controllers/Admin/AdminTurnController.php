@@ -43,7 +43,6 @@ class AdminTurnController extends Controller
         return back()->with('success', 'Turno finalizado correctamente.');
     }
     public function editSettings() {
-        // Esto asegura que siempre haya una configuración base
         $settings = Setting::firstOrCreate(
             ['id' => 1],
             ['opening_time' => '10:00', 'closing_time' => '19:00', 'slot_duration' => 40]
