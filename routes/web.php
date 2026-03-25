@@ -16,6 +16,8 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 Route::get('/api/available-times', [PublicTurnsController::class, 'getAvailableTimes']);
 Route::get('/confirmar-turno/{token}', [PublicTurnsController::class, 'confirm'])->name('turns.confirm');
+Route::post('/admin/blocked-days', [AdminTurnController::class, 'storeBlockedDay'])->name('admin.blocked-days.store');
+Route::delete('/admin/blocked-days/{blockedDay}', [AdminTurnController::class, 'destroyBlockedDay'])->name('admin.blocked-days.destroy');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

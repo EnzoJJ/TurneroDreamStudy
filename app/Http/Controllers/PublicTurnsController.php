@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use App\Mail\ConfirmTurnMail;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use App\Models\BlockedDay;
 
 
 class PublicTurnsController extends Controller
@@ -95,6 +96,10 @@ class PublicTurnsController extends Controller
     }
     public function getAvailableTimes(Request $request)
     {
+        $isBlocked = BlockedDay::where('date', $request->date)->exists();
+        if ($isBlocked) {
+            return response()->json([]); // Retorna vacío para que no aparezcan horarios
+        }
         // 1. Obtener configuración (con respaldo si no existe)
         $config = Setting::first() ?? (object)[
             'opening_time' => '10:00',
