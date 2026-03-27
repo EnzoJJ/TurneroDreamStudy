@@ -22,6 +22,7 @@ class PublicTurnsController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Configuraciones básicas
         $config = Setting::first() ?? (object)[
             'opening_time' => '10:00',
             'closing_time' => '19:30',
@@ -31,6 +32,7 @@ class PublicTurnsController extends Controller
         $closing = $config->closing_time;
         $duration = $config->slot_duration;
 
+        // 2. Validación inicial de campos
         $request->validate([
             'barber_id'    => 'required|exists:barbers,id',
             'client_name'  => 'required|string|max:255',
@@ -39,32 +41,48 @@ class PublicTurnsController extends Controller
             'start_time'   => 'required|date|after:now',
         ]);
 
+        // Convertimos el input a un objeto Carbon para trabajar con él
         $dateTime = Carbon::parse($request->start_time);
-        $time = $dateTime->format('H:i');
+        $dateOnly = $dateTime->format('Y-m-d'); // Solo la fecha (YYYY-MM-DD)
+        $timeOnly = $dateTime->format('H:i');   // Solo la hora (HH:mm)
 
-        if ($time < $opening || $time > $closing) {
+        // --- NUEVA CAPA DE SEGURIDAD: VALIDAR DÍAS BLOQUEADOS ---
+        // Verificamos si para esa fecha hay un bloqueo general O específico para ese barbero
+        $isBlocked = BlockedDay::where('date', $dateOnly)
+            ->where(function ($query) use ($request) {
+                $query->whereNull('barber_id')
+                    ->orWhere('barber_id', $request->barber_id);
+            })->exists();
+
+        if ($isBlocked) {
+            return back()->withErrors(['start_time' => 'El peluquero o el local no están disponibles en la fecha seleccionada.'])->withInput();
+        }
+        // -------------------------------------------------------
+
+        // 3. Validar horario comercial
+        if ($timeOnly < $opening || $timeOnly > $closing) {
             return back()->withErrors(['start_time' => "Atendemos de $opening a $closing."])->withInput();
         }
 
-        $startTimeBase = Carbon::parse($dateTime->format('Y-m-d') . ' ' . $opening);
+        // 4. Validar que el turno caiga en un "slot" correcto (múltiplos de la duración)
+        $startTimeBase = Carbon::parse($dateOnly . ' ' . $opening);
         $diffInMinutes = $startTimeBase->diffInMinutes($dateTime);
 
         if ($diffInMinutes % $duration !== 0) {
             return back()->withErrors(['start_time' => "Los turnos son cada $duration minutos."])->withInput();
         }
 
-        // --- CAPA 3: Evitar Superposición (Mismo barbero, misma hora) ---
-        // Buscamos si ya existe un turno CONFIRMADO o PENDIENTE para ese barbero a esa hora
+        // 5. Evitar Superposición (Mismo barbero, misma hora ya ocupada)
         $alreadyTaken = Turns::where('barber_id', $request->barber_id)
                             ->where('start_time', $dateTime)
                             ->whereIn('status', ['pending', 'confirmed'])
                             ->exists();
 
         if ($alreadyTaken) {
-            return back()->withErrors(['start_time' => 'Este peluquero ya tiene un turno asignado para ese horario.'])->withInput();
+            return back()->withErrors(['start_time' => 'Este horario ya ha sido reservado.'])->withInput();
         }
 
-        // 2. Si pasó todas las pruebas, guardamos
+        // 6. Si pasó TODO, creamos el turno
         $turn = Turns::create([
             'barber_id'    => $request->barber_id,
             'client_name'  => $request->client_name,
@@ -75,7 +93,7 @@ class PublicTurnsController extends Controller
             'token'        => Str::uuid(),
         ]);
 
-        // 3. Envío de Mail
+        // 7. Envío de Mail
         Mail::to($turn->client_email)->send(new ConfirmTurnMail($turn));
 
         return back()->with('success', '¡Casi listo! Revisa tu email para confirmar el turno.');
